@@ -9,10 +9,10 @@
             <div class="table-box">
                 {% for user in users %}
                       <div class="for_users">
-                        <img src="{{ url_for('static', filename = 'photos/'+user[8]) }}"/>
-                        <a {% if is_auth %}onclick="location.href='../account/?user={{user[3]}}';"{% else %}onclick="location.href='../auth';"{% endif%}><h3>{{user[1]}} {{user[2]}}{% if user[0]|string() == id_sess %}(Вы){% endif %}</h3></a>
-                        <p>{{user[3]}}</p>
-                        <p>Возраст: {{user[4]}}</p>
+                        <img src="{{ url_for('static', filename = 'photos/'+user.photo) }}"/>
+                        <a {% if is_auth %}onclick="location.href='../account/?user={{user.email}}';"{% else %}onclick="location.href='../auth';"{% endif%}><h3>{{user.name}} {{user.surname}}{% if user.email|string() == id_sess %}(Вы){% endif %}</h3></a>
+                        <p>{{user.email}}</p>
+                        <p>Возраст: {{user.age}}</p>
                       </div>
               {% endfor %}
               </div>
