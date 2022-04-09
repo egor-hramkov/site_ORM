@@ -1,0 +1,34 @@
+{% extends 'main.html' %}
+
+{% block head %}
+        <title>Вход</title>
+{% endblock %}
+
+{% block body %}
+{% if 'login' in session %}
+<div class="vhod">
+<h3>Вы вошли как {{user}}</h3>
+    <button class="btn btn-primary" onclick="location.href='../users/?page=0';">Посмотреть список пользователей</button>
+    <button class="btn btn-primary" onclick="location.href='../auth/?avt=false';">Выход</button>
+</div>
+{% else %}
+        <form class="regist" method="post" enctype="multipart/form-data">
+            {{ form.csrf_token }}
+            <div class="form-group">
+              <label>Email address</label>
+                {{ form.username(class="form-control") }}
+            </div>
+            <div class="form-group">
+              <label>Пароль</label>
+              {{ form.password (class="form-control")}}
+            </div>
+            {% for msg in get_flashed_messages() %}
+                <div class="flash">{{msg}}</div>
+            {% endfor %}
+            <button type="submit" class="btn btn-primary">Войти</button>
+            <button class="btn btn-primary" onclick="location.href='../users/?page=0';">Посмотреть список пользователей</button>
+          </form>
+{% endif %}
+
+
+{% endblock %}

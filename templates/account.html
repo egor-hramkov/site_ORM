@@ -1,0 +1,21 @@
+{% extends 'main.html' %}
+
+{% block head %}
+        <title>Список пользователей</title>
+{% endblock %}
+{% block body %}
+        <form class="for_users2" method="POST">
+                        <img src="{{ url_for('static', filename = 'photos/'+user[8]) }}"/>
+                        <input type="text" value="{{user[1]}}" name="names" class="edit_text" {% if user[0]|string() != id_sess and is_adm == False %}readonly="True"{% endif %}>
+                        <input type="text" value="{{user[2]}}" name="surname" class="edit_text" {% if user[0]|string() != id_sess and is_adm == False %}readonly="True"{% endif %}>
+                        <input type="email" value="{{user[3]}}" name="mail" class="edit_text" readonly="True">
+                        <input type="text" value="{{user[5]}}" name="work" class="edit_text" {% if user[0]|string() != id_sess and is_adm == False %}readonly="True"{% endif %}>
+                        <input type="text" value="{{user[6]}}" name="post" class="edit_text" {% if user[0]|string() != id_sess and is_adm == False %}readonly="True"{% endif %}>
+            <div class="input_age">
+                        <label>Возраст:</label>
+                        <input type="number" value="{{user[4]}}" name="age" class="edit_text" {% if user[0]|string() != id_sess and is_adm == False %}readonly="True"{% endif %}>
+            </div>
+            {% if user[0]|string() == id_sess or is_adm == True %}<button type="submit" class="btn btn-primary">Сохранить</button>{% endif %}
+        </form>
+
+{% endblock %}

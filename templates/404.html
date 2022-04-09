@@ -1,0 +1,14 @@
+{% extends 'main.html' %}
+
+{% block head %}
+        <title>Ошибка О_о</title>
+{% endblock %}
+
+{% block body %}
+        <div class="table-box">
+                        <h1 class="display-4">При обработке запроса возникла какая-то ошибка. Мы сейчас всё починим, а вы пока вернитесь на предыдущую страницу</h1>
+                        <img src="{{ url_for('static', filename = 'img/error2.png') }}"/>
+        </div>
+
+
+{% endblock %}

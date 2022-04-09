@@ -1,0 +1,28 @@
+{% extends 'main.html' %}
+
+{% block head %}
+        <title>Список пользователей</title>
+{% endblock %}
+
+{% block body %}
+
+            <div class="table-box">
+                {% for user in users %}
+                      <div class="for_users">
+                        <img src="{{ url_for('static', filename = 'photos/'+user[8]) }}"/>
+                        <a {% if is_auth %}onclick="location.href='../account/?user={{user[3]}}';"{% else %}onclick="location.href='../auth';"{% endif%}><h3>{{user[1]}} {{user[2]}}{% if user[0]|string() == id_sess %}(Вы){% endif %}</h3></a>
+                        <p>{{user[3]}}</p>
+                        <p>Возраст: {{user[4]}}</p>
+                      </div>
+              {% endfor %}
+              </div>
+
+    <div class="pagination">
+        <a href="/users?page=0">&laquo;</a>
+        {% for page in range(pagecount) %}
+            <a href="/users?page={{ page }}">{{ page + 1 }}</a>
+        {% endfor %}
+        <a href="/users?page={{pagecount - 1}}">&raquo;</a>
+    </div>
+
+    {% endblock %}

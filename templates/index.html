@@ -1,0 +1,23 @@
+
+{% extends 'main.html' %}
+
+{% block head %}
+        <title>Карта города</title>
+{% endblock %}
+
+{% block body %}
+<div class="main_class">
+            <div class="secondary">
+                <h1 class="display-1">{{message}}</h1>
+                <h1 class="display-1">Город:<small class="text-muted">{{city}}</small></h1>
+                <h1 class="display-1">Страна:<small class="text-muted">{{country}}</small></h1>
+                <h1 class="display-3">Область:<small class="text-muted">{{province}}</small></h1>
+                <h1 class="display-5">Федеральный округ:<small class="text-muted">{{county}}</small></h1>
+            </div>
+        {% if data %}
+            <div class="class_1"><img src="{{ url_for('static', filename='img/map.png')}}"></div>
+        {% else %}
+            <div class="class_1"><img src="{{ url_for('static', filename='img/error.png')}}"></div>
+        {% endif %}
+        </div>
+{% endblock %}
