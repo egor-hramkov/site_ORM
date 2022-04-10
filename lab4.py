@@ -1,3 +1,4 @@
+from datetime import datetime
 from flask import Flask, url_for, render_template, request, send_from_directory, g, abort, flash, session
 from flask_session import Session
 from werkzeug.utils import redirect, secure_filename
@@ -30,14 +31,14 @@ app.config.from_object(__name__)
 app.config.update(dict(DATABASE=os.path.join(app.root_path, 'flsite.db')))
 app.config['SESSION_PEMANENT'] = False
 app.config['SESSION_TYPE'] = "filesystem"
-app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///blog.db"
+app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///mains.db"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 Session(app)
 login_manager = LoginManager(app)
 dbalc = SQLAlchemy(app)
 
 class Users(dbalc.Model):
-    id = dbalc.Column(dbalc.Integer, primary_key = True)
+    id = dbalc.Column(dbalc.Integer, primary_key = True, autoincrement=True)
     name = dbalc.Column(dbalc.String(50), nullable = True)
     surname = dbalc.Column(dbalc.String(50), nullable=True)
     email = dbalc.Column(dbalc.String(50), unique = True)
@@ -49,13 +50,14 @@ class Users(dbalc.Model):
     role = dbalc.Column(dbalc.String(50), nullable=True)
 
 class News(dbalc.Model):
-    id = dbalc.Column(dbalc.Integer, primary_key=True)
+    id = dbalc.Column(dbalc.Integer, primary_key=True, autoincrement=True)
     maintext = dbalc.Column(dbalc.String(5000), nullable=True)
-    category = dbalc.Column(dbalc.String(100), dbalc.ForeignKey('categories.category'))
-    user_id = dbalc.Column(dbalc.Integer, dbalc.ForeignKey('users.id'))
+    category = dbalc.Column(dbalc.String(100))
+    date_created = dbalc.Column(dbalc.DateTime, default=datetime.utcnow())
+    user_id = dbalc.Column(dbalc.Integer)
 
 class Categories(dbalc.Model):
-    id = dbalc.Column(dbalc.Integer, primary_key=True)
+    id = dbalc.Column(dbalc.Integer, primary_key=True, autoincrement=True)
     category = dbalc.Column(dbalc.String(100), nullable=True)
 
 
@@ -106,17 +108,17 @@ def register():
                     if Users.query.filter_by(name = request.form.get('named')).first():
                         flash("Не пытайтесь добавить еще одного админа!")
                         return redirect(url_for('register'))
-                else:
-                    u = Users(name=request.form.get('named'), surname=request.form.get('surname'),
-                              email=request.form.get('email'),
-                              age=request.form.get('age'),
-                              work=request.form.get('work'), post=request.form.get('position'),
-                              password=generate_password_hash(request.form.get('password')), photo=filename2db,
-                              role='Админ')
-                    dbalc.session.add(u)
-                    dbalc.session.flush()
-                    dbalc.session.commit()
-                    return redirect(url_for('users') + '?page=0')
+                    else:
+                        u = Users(name=request.form.get('named'), surname=request.form.get('surname'),
+                                  email=request.form.get('email'),
+                                  age=request.form.get('age'),
+                                  work=request.form.get('work'), post=request.form.get('position'),
+                                  password=generate_password_hash(request.form.get('password')), photo=filename2db,
+                                  role='Админ')
+                        dbalc.session.add(u)
+                        dbalc.session.flush()
+                        dbalc.session.commit()
+                        return redirect(url_for('users') + '?page=0')
 
                 u = Users(name = request.form.get('named'), surname = request.form.get('surname'), email = request.form.get('email'),
                           age = request.form.get('age'),
@@ -141,6 +143,8 @@ def users():
     db = get_db()
     dbase = FDataBase(db)
     id_sess = ""
+    if not request.args.get('page'):
+        abort(404)
     curr_page = int(request.args.get('page'))
     pgcount = 1
     remainder = 0
@@ -220,16 +224,51 @@ def account():
 
 @app.route('/news/', methods=['POST', 'GET'])
 def news():
+    all_news = []
+    if not request.args.get('page'):
+        abort(404)
     if 'login' not in session:
         flash("Авторизируйтесь, чтобы просматривать и добавлять новости")
+        return redirect(url_for('auth'))
+    else:
+        all_news = News.query.order_by(News.date_created.desc()).all()
+        if all_news == []:
+            flash("Станьте первым, кто выложит новость")
+            return render_template('news.html', all_news = all_news)
 
-    return render_template('news.html')
+        user = Users.query.filter_by(id = all_news[0].user_id).first()
+        curr_page = int(request.args.get('page'))
+        pgcount = len(all_news)
+        class npgstore:
+            value = pgcount
+        if curr_page > pgcount:
+            abort(404)
 
-@app.route('/news/addnews', methods=['POST', 'GET'])
+        match curr_page:
+            case 0:
+                n = all_news[0]
+                user = Users.query.filter_by(id=n.user_id).first()
+                presentTime = n.date_created
+                presentTime2 = presentTime.strftime('%B %d %Y - %H:%M:%S')
+            case npgstore.value:
+                n = all_news[pgcount]
+                user = Users.query.filter_by(id=n.user_id).first()
+                presentTime = n.date_created
+                presentTime2 = presentTime.strftime('%B %d %Y - %H:%M:%S')
+            case _:
+                n = all_news[curr_page]
+                user = Users.query.filter_by(id=n.user_id).first()
+                presentTime = n.date_created
+                presentTime2 = presentTime.strftime('%B %d %Y - %H:%M:%S')
+        return render_template('news.html', user = user, page = curr_page, pagecount = pgcount, news = n, time = presentTime2)
+
+@app.route('/news/addnews/', methods=['POST', 'GET'])
 def add_news():
     if 'login' in session:
         if request.method == 'POST':
-            pass
+            new_n = News(maintext = request.form.get("new_news"), category = request.form.get("category"), user_id = Users.query.filter_by(email = session['login']).first().id)
+            dbalc.session.add(new_n)
+            dbalc.session.commit()
 
         cati = Categories.query.all()
         spis_cati = []

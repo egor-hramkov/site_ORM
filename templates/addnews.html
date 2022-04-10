@@ -1,7 +1,7 @@
 {% extends 'main.html' %}
 
 {% block head %}
-        <title>Новости</title>
+        <title>Создать новость</title>
 {% endblock %}
 
 {% block body %}
@@ -9,16 +9,17 @@
             <div class="news_box">
                  <form method="POST" class="form_cat">
                 <textarea name="new_news" id="new_news" rows="12" cols="80" placeholder="Что у вас нового?" required class="input_news"></textarea>
-                <input type="text" list="categories" name="category" id="new_news_input" autocomplete="on" placeholder="Категория"/>
-                <datalist id="categories" name="categories">
+                <label>Категория:</label>
+                    <select name="category" required >
                 {% for category in cati %}
                 <option> {{ category }} </option>
                 {% endfor %}
-                </datalist>
-                {% if user.role == 'Админ' %}<button class="btn btn-primary news_btn2" onclick="location.href='../news/addcat';">Добавить категорию</button>{% endif %}
+                </select>
+
+                {% if user.role == 'Админ' %}<button class="btn btn-primary news_btn2" onclick="location.href='../addcat';">Добавить категорию</button>{% endif %}
 
                 <button type="submit"  class="btn btn-primary news_btn">Опубликовать</button>
-                      <button class="btn btn-primary news_btn2" onclick="location.href='../news'">Вернуться</button>
+                      <button class="btn btn-primary news_btn2" onclick="location.href='../?page=0'">Вернуться</button>
                 </form>
 
             </div>
