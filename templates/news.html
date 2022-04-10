@@ -7,8 +7,12 @@
 {% block body %}
 
             <div class="table-box">
-
+            {% for msg in get_flashed_messages() %}
+                <div class="flash">{{msg}}</div>
+            {% endfor %}
             </div>
+            <button class="btn btn-primary news_btn2" onclick="location.href='../news/addnews';">Опубликовать новость</button>
+
 
 
 

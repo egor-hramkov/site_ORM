@@ -210,12 +210,13 @@ a:active {
     resize: none;
     box-shadow: 0px 0px 4px 2px rgb(0 0 0 / 20%);
     margin: 0px 30px 0px 0px;
+    vertical-align: text-top;
 }
 
 .news_box {
     width: 100%;
     margin: 0 auto;
-    height: 300px;
+    height: 400px;
     background-color: white;
     border-radius: 10px;
     display: flex;
@@ -223,4 +224,11 @@ a:active {
 }
 .news_btn {
     width:20%;
+}
+.news_btn2 {
+    width:20%;
+    margin: 10px 10px 10px 10px;
+}
+.form_cat {
+    width: 100%;
 }

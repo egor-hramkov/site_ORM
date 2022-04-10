@@ -140,11 +140,7 @@ def users():
 
     db = get_db()
     dbase = FDataBase(db)
-    authorized = ""
     id_sess = ""
-    if 'login' in session:
-        authorized = session['login']
-
     curr_page = int(request.args.get('page'))
     pgcount = 1
     remainder = 0
@@ -169,7 +165,7 @@ def users():
         id_sess = session['login']
     except:
         pass
-    return render_template('users.html', users=a, curr_page=curr_page, pagecount=pgcount, is_auth=authorized.split(), id_sess=id_sess)
+    return render_template('users.html', users=a, curr_page=curr_page, pagecount=pgcount, id_sess=id_sess)
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -186,8 +182,6 @@ def auth():
         user = dbase.getUserByEmail(request.form.get('username'))
         u = Users.query.filter_by(email = request.form.get('username')).first()
         if u and check_password_hash(u.password, request.form.get('password')):
-           # userlogin = UserLogin().create(u)
-            #login_user(userlogin)
             session['login'] = u.email
             return redirect(url_for('users')+'?page=0')
         flash("Неверный логин/пароль")
@@ -221,29 +215,45 @@ def account():
         else:
             abort(404)
     else:
-        return render_template('auth.html', form=form1)
+        flash("Авторизируйтесь, чтобы просматривать аккаунты")
+        return redirect(url_for('users') + '?page=0')
 
 @app.route('/news/', methods=['POST', 'GET'])
 def news():
-    if request.method == 'POST':
-        pass
+    if 'login' not in session:
+        flash("Авторизируйтесь, чтобы просматривать и добавлять новости")
 
     return render_template('news.html')
 
-@app.route('/news/add', methods=['POST', 'GET'])
+@app.route('/news/addnews', methods=['POST', 'GET'])
 def add_news():
-    cati = Categories.query.all()
-    spis_cati = []
-    for i in range(len(cati)):
-        spis_cati.append(cati[i].category)
+    if 'login' in session:
+        if request.method == 'POST':
+            pass
 
-    user = Users.query.filter_by(email=session['login']).first()
-    return render_template('add_news.html', cati=spis_cati, user=user)
+        cati = Categories.query.all()
+        spis_cati = []
+        for i in range(len(cati)):
+            spis_cati.append(cati[i].category)
+        user = Users.query.filter_by(email=session['login']).first()
+        return render_template('addnews.html', cati=spis_cati, user=user)
+    else:
+        return redirect(url_for('news'))
 
-@app.route('/news/addcat', methods=['POST', 'GET'])
+@app.route('/news/addcat/', methods=['POST', 'GET'])
 def add_cat():
-    pass
-
+    if 'login' in session:
+        if Users.query.filter_by(email=session['login']).first().role == 'Админ':
+            if request.method == 'POST':
+                new_c = Categories(category = request.form.get('new_category'))
+                dbalc.session.add(new_c)
+                dbalc.session.flush()
+                dbalc.session.commit()
+            return render_template('addcat.html')
+        else:
+           return redirect(url_for('add_news'))
+    else:
+        return redirect(url_for('news'))
 
 @app.errorhandler(404)
 @app.errorhandler(403)

@@ -1,0 +1,20 @@
+{% extends 'main.html' %}
+
+{% block head %}
+        <title>Добавить категорию</title>
+{% endblock %}
+
+{% block body %}
+
+            <div class="news_box">
+                <form method="POST" class="form_cat">
+                    <input type="text" name="new_category" required id="new_news_input" placeholder="Добавьте категорию"/>
+                    <button type="submit" class="btn btn-primary news_btn2">Добавить</button>
+                    <button class="btn btn-primary news_btn2" onclick="location.href='../addnews'">Вернуться</button>
+                </form>
+            </div>
+
+
+
+
+    {% endblock %}

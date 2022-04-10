@@ -5,12 +5,14 @@
 {% endblock %}
 
 {% block body %}
-
+{% for msg in get_flashed_messages() %}
+                <div class="flash">{{msg}}</div>
+            {% endfor %}
             <div class="table-box">
                 {% for user in users %}
                       <div class="for_users">
                         <img src="{{ url_for('static', filename = 'photos/'+user.photo) }}"/>
-                        <a {% if is_auth %}onclick="location.href='../account/?user={{user.email}}';"{% else %}onclick="location.href='../auth';"{% endif%}><h3>{{user.name}} {{user.surname}}{% if user.email|string() == id_sess %}(Вы){% endif %}</h3></a>
+                        <a onclick="location.href='../account/?user={{user.email}}';"><h3>{{user.name}} {{user.surname}}{% if user.email|string() == id_sess %}(Вы){% endif %}</h3></a>
                         <p>{{user.email}}</p>
                         <p>Возраст: {{user.age}}</p>
                       </div>
