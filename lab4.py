@@ -85,7 +85,11 @@ def close_db(error):
 
 @app.route('/')
 def index():
-    return redirect(url_for('register'))
+    return redirect(url_for('mainpage'))
+
+@app.route('/mainpage/')
+def mainpage():
+    return render_template('mainpage.html')
 
 @app.route('/registration/', methods=['POST', 'GET'])
 def register():
@@ -215,7 +219,9 @@ def account():
         if user:
             if( Users.query.filter_by(email = session['login']).first().role == 'Админ'):
                 is_adm = True
-            return render_template('account.html', user=user, id_sess=session['login'], is_adm=is_adm)
+            news_of_user = News.query.filter_by(user_id = user.id).order_by(News.date_created.desc()).all()
+
+            return render_template('account.html', user=user, id_sess=session['login'], is_adm=is_adm, news_of_user = news_of_user)
         else:
             abort(404)
     else:
@@ -293,6 +299,32 @@ def add_cat():
            return redirect(url_for('add_news'))
     else:
         return redirect(url_for('news'))
+
+@app.route('/editnews/', methods=['POST', 'GET'])
+def edit_news():
+    if 'login' in session:
+        nnn = request.args.get('news')
+        if not nnn:
+            abort(404)
+        news = News.query.filter_by(id=request.args.get('news')).first()
+        u = Users.query.filter_by(email=session['login']).first()
+        if u.id != news.user_id and u.role != 'Админ':
+            abort(404)
+
+        if request.method == 'POST':
+            ed_news = News.query.filter_by(id = nnn).first()
+            ed_news.maintext = request.form.get('edit_news')
+            ed_news.category = request.form.get('category')
+            dbalc.session.commit()
+
+        cati = Categories.query.all()
+        user = Users.query.filter_by(id = news.user_id).first()
+        spis_cati = []
+        for i in range(len(cati)):
+            spis_cati.append(cati[i].category)
+        return render_template('editnews.html', news = news, cati = spis_cati, user = user)
+    else:
+        abort(404)
 
 @app.errorhandler(404)
 @app.errorhandler(403)

@@ -1,0 +1,27 @@
+{% extends 'main.html' %}
+
+{% block head %}
+        <title>Редактировать новость</title>
+{% endblock %}
+
+{% block body %}
+
+            <div class="news_box">
+                 <form method="POST" class="form_cat">
+                     <textarea name="edit_news" id="edit_news" rows="12" cols="80" required class="input_news">{{news.maintext}}</textarea>
+                     <label>Категория:</label>
+                     <select name="category" required >
+                        {% for category in cati %}
+                            <option {% if category == news.category %} selected {% endif %} > {{ category }} </option>
+                        {% endfor %}
+                    </select>
+
+                    <button type="submit"  class="btn btn-primary news_btn">Изменить</button>
+                     <button type="submit" class="btn btn-primary news_btn delete_news">Удалить запись</button>
+                </form>
+                <button class="btn btn-primary news_btn2" onclick="location.href='../account/?user={{user.email}}';">Вернуться</button>
+            </div>
+
+
+
+    {% endblock %}

@@ -4,6 +4,7 @@
         <title>Список пользователей</title>
 {% endblock %}
 {% block body %}
+        <div class="table-box2">
         <form class="for_users2" method="POST">
                         <img src="{{ url_for('static', filename = 'photos/'+user.photo) }}"/>
                         <input type="text" value="{{user.name}}" name="names" class="edit_text" {% if user.email|string() != id_sess and is_adm == False %}readonly="True"{% endif %}>
@@ -17,5 +18,13 @@
             </div>
             {% if user.email|string() == id_sess or is_adm == True %}<button type="submit" class="btn btn-primary">Сохранить</button>{% endif %}
         </form>
+            <div>
+                <h2>Новости пользователя: </h2>
+                {% for news in news_of_user %}
+                    <p><small class="text-muted">{{news.date_created.strftime('%B %d %Y - %H:%M:%S')}} </small>{% if news.category != "-" and news.category != '' %}<b>{{news.category}}.</b>{% endif %} {{news.maintext}} {% if user.email|string() == id_sess or is_adm %}<a href="../editnews/?news={{news.id}}"><img src="{{ url_for('static', filename = 'img/edit.png') }}"/></a> <img src="{{ url_for('static', filename = 'img/delete.jpg') }}"/>{% endif %}</p>
+                {% endfor %}
+            </div>
+
+        </div>
 
 {% endblock %}
