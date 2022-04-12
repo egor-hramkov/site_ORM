@@ -2,6 +2,13 @@
 
 {% block head %}
         <title>Новости</title>
+<script>
+    function x() {
+        window.location = "../news/newsbycat/?page=0&cata=" + document.getElementById('catas').value;
+        return false;
+    }
+
+</script>
 {% endblock %}
 
 {% block body %}
@@ -23,13 +30,22 @@
                 </div>
             </div>
             <button class="btn btn-primary news_btn2" onclick="location.href='../news/addnews';">Опубликовать новость</button>
+            <form method="POST" id=forma">
+                <button class="btn btn-primary news_btn2" onclick="return x();">Сортировать по категориям</button>
+                <label>Категория:</label>
+                    <select name="category_sort" id="catas" required>
+                {% for category in cati %}
+                <option> {{ category }} </option>
+                {% endfor %}
+                </select>
+            </form>
         {% if all_news != [] %}
         <div class="pagination">
-        <a href="/news?page=0">&laquo;</a>
+        <a href="/news?page=0" >&laquo;</a>
         {% for page in range(pagecount) %}
-            <a href="/news?page={{ page }}">{{ page + 1 }}</a>
+            <a href="/news?page={{ page }}" >{{ page + 1 }}</a>
         {% endfor %}
-        <a href="/news?page={{pagecount - 1}}">&raquo;</a>
+        <a  href="/news?page={{pagecount - 1}}">&raquo;</a>
     </div>
 {% endif %}
     {% endblock %}

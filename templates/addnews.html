@@ -8,18 +8,18 @@
 
             <div class="news_box">
                  <form method="POST" class="form_cat">
-                <textarea name="new_news" id="new_news" rows="12" cols="80" placeholder="Что у вас нового?" required class="input_news"></textarea>
-                <label>Категория:</label>
-                    <select name="category" required >
-                {% for category in cati %}
-                <option> {{ category }} </option>
-                {% endfor %}
-                </select>
+                    <textarea name="new_news" id="new_news" rows="12" cols="80" placeholder="Что у вас нового?" required class="input_news"></textarea>
+                    <label>Категория:</label>
+                        <select name="category" required >
+                    {% for category in cati %}
+                    <option> {{ category }} </option>
+                    {% endfor %}
+                    </select>
 
-                {% if user.role == 'Админ' %}<button class="btn btn-primary news_btn2" onclick="location.href='../addcat';">Добавить категорию</button>{% endif %}
+                    {% if user.role == 'Админ' %}<button class="btn btn-primary news_btn2" onclick="location.href='../addcat';">Добавить категорию</button>{% endif %}
 
-                <button type="submit"  class="btn btn-primary news_btn">Опубликовать</button>
-                      <button class="btn btn-primary news_btn2" onclick="location.href='../?page=0'">Вернуться</button>
+                    <button type="submit"  class="btn btn-primary news_btn">Опубликовать</button>
+                     <button class="btn btn-primary news_btn2" onclick="location.href='../?page=0'">Вернуться</button>
                 </form>
 
             </div>

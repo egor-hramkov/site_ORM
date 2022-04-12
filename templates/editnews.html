@@ -2,6 +2,14 @@
 
 {% block head %}
         <title>Редактировать новость</title>
+<script>
+function destroy()
+{
+    if (confirm("Bы уверены, что хотите удалить эту запись?"))
+    return window.location = "/editnews/?news={{news.id}}&del=true";
+    else return false;
+ }
+</script>
 {% endblock %}
 
 {% block body %}
@@ -17,8 +25,8 @@
                     </select>
 
                     <button type="submit"  class="btn btn-primary news_btn">Изменить</button>
-                     <button type="submit" class="btn btn-primary news_btn delete_news">Удалить запись</button>
                 </form>
+                <button onclick="return destroy();" class="btn btn-primary news_btn delete_news">Удалить запись</button>
                 <button class="btn btn-primary news_btn2" onclick="location.href='../account/?user={{user.email}}';">Вернуться</button>
             </div>
 

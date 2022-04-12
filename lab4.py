@@ -3,14 +3,10 @@ from flask import Flask, url_for, render_template, request, send_from_directory,
 from flask_session import Session
 from werkzeug.utils import redirect, secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
-import requests
-import sqlite3
 import os
 import uuid
 import loginform
-from flask_login import LoginManager, login_user
-from FDataBase import FDataBase
-from UserLogin import UserLogin
+from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
 
 
@@ -37,6 +33,8 @@ Session(app)
 login_manager = LoginManager(app)
 dbalc = SQLAlchemy(app)
 
+last_cata = ""
+
 class Users(dbalc.Model):
     id = dbalc.Column(dbalc.Integer, primary_key = True, autoincrement=True)
     name = dbalc.Column(dbalc.String(50), nullable = True)
@@ -60,24 +58,6 @@ class Categories(dbalc.Model):
     id = dbalc.Column(dbalc.Integer, primary_key=True, autoincrement=True)
     category = dbalc.Column(dbalc.String(100), nullable=True)
 
-
-def connect_db():
-    conn = sqlite3.connect(app.config['DATABASE'])
-    conn.row_factory = sqlite3.Row
-    return conn
-
-def create_db():
-    db=connect_db()
-    with app.open_resource('sq_db.sql', mode='r') as f:
-        db.cursor().executescript(f.read())
-    db.commit()
-    db.close()
-
-def get_db():
-    if not hasattr(g, 'link_db'):
-        g.link_db = connect_db()
-    return g.link_db
-
 @app.teardown_appcontext
 def close_db(error):
     if hasattr(g, 'link_db'):
@@ -96,17 +76,12 @@ def register():
     if request.method == 'GET':
         return render_template('register.html')
     elif request.method == 'POST':
-        create_db()
         file = request.files['photo']
         if file and allowed_file(file.filename):
             s = uuid.uuid4()
             filename = secure_filename(file.filename)
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], str(s) + '.jpg'))
             filename2db = str(s) + '.jpg'
-
-            db = get_db()
-            dbase = FDataBase(db)
-
             try:
                 if request.form.get('named') == 'admin':
                     if Users.query.filter_by(name = request.form.get('named')).first():
@@ -143,9 +118,6 @@ def download_file(name):
 
 @app.route('/users/')
 def users():
-
-    db = get_db()
-    dbase = FDataBase(db)
     id_sess = ""
     if not request.args.get('page'):
         abort(404)
@@ -177,23 +149,18 @@ def users():
 
 @login_manager.user_loader
 def load_user(user_id):
-    db = get_db()
-    dbase = FDataBase(db)
-    return UserLogin().fromDB(user_id, dbase)
+  pass
 
 @app.route('/auth/', methods=['POST', 'GET'])
 def auth():
-    db = get_db()
-    dbase = FDataBase(db)
     form1 = loginform.LoginForm()
     if request.method == 'POST':
-        user = dbase.getUserByEmail(request.form.get('username'))
         u = Users.query.filter_by(email = request.form.get('username')).first()
         if u and check_password_hash(u.password, request.form.get('password')):
             session['login'] = u.email
             return redirect(url_for('users')+'?page=0')
         flash("Неверный логин/пароль")
-        return render_template('auth.html', form=form1, user=user)
+        return render_template('auth.html', form=form1, user=u)
     else:
         if request.args.get('avt') is not None:
             session.pop('login')
@@ -205,8 +172,6 @@ def auth():
 @app.route('/account/', methods=['POST', 'GET'])
 def account():
     is_adm = False
-    db = get_db()
-    dbase = FDataBase(db)
     if request.method == 'POST':
         user = Users.query.filter_by(email = request.args.get('user')).first()
         user.name = request.form.get('names')
@@ -230,17 +195,26 @@ def account():
 
 @app.route('/news/', methods=['POST', 'GET'])
 def news():
-    all_news = []
+    #all_news = []
     if not request.args.get('page'):
         abort(404)
     if 'login' not in session:
         flash("Авторизируйтесь, чтобы просматривать и добавлять новости")
         return redirect(url_for('auth'))
     else:
-        all_news = News.query.order_by(News.date_created.desc()).all()
+        cati = Categories.query.all()
+        spis_cati = []
+        for i in range(len(cati)):
+            spis_cati.append(cati[i].category)
+        if request.method == 'POST':
+            all_news = News.query.filter_by(category = request.form.get('category_sort')).order_by(News.date_created.desc()).all()
+            is_sort = True
+        else:
+            all_news = News.query.order_by(News.date_created.desc()).all()
+            is_sort = False
         if all_news == []:
             flash("Станьте первым, кто выложит новость")
-            return render_template('news.html', all_news = all_news)
+            return render_template('news.html', all_news = all_news, cati = spis_cati)
 
         user = Users.query.filter_by(id = all_news[0].user_id).first()
         curr_page = int(request.args.get('page'))
@@ -249,7 +223,6 @@ def news():
             value = pgcount
         if curr_page > pgcount:
             abort(404)
-
         match curr_page:
             case 0:
                 n = all_news[0]
@@ -266,7 +239,7 @@ def news():
                 user = Users.query.filter_by(id=n.user_id).first()
                 presentTime = n.date_created
                 presentTime2 = presentTime.strftime('%B %d %Y - %H:%M:%S')
-        return render_template('news.html', user = user, page = curr_page, pagecount = pgcount, news = n, time = presentTime2)
+        return render_template('news.html', user = user, page = curr_page, pagecount = pgcount, news = n, time = presentTime2, cati = spis_cati, is_sort = is_sort)
 
 @app.route('/news/addnews/', methods=['POST', 'GET'])
 def add_news():
@@ -302,6 +275,13 @@ def add_cat():
 
 @app.route('/editnews/', methods=['POST', 'GET'])
 def edit_news():
+    if request.args.get('del'):
+        nn = int(request.args.get('news'))
+        x = News.query.filter_by(id=nn).first()
+        user = Users.query.filter_by(id = x.user_id).first()
+        dbalc.session.delete(x)
+        dbalc.session.commit()
+        return redirect(url_for('account') + '?user=' + user.email)
     if 'login' in session:
         nnn = request.args.get('news')
         if not nnn:
@@ -310,13 +290,11 @@ def edit_news():
         u = Users.query.filter_by(email=session['login']).first()
         if u.id != news.user_id and u.role != 'Админ':
             abort(404)
-
         if request.method == 'POST':
             ed_news = News.query.filter_by(id = nnn).first()
             ed_news.maintext = request.form.get('edit_news')
             ed_news.category = request.form.get('category')
             dbalc.session.commit()
-
         cati = Categories.query.all()
         user = Users.query.filter_by(id = news.user_id).first()
         spis_cati = []
@@ -325,6 +303,55 @@ def edit_news():
         return render_template('editnews.html', news = news, cati = spis_cati, user = user)
     else:
         abort(404)
+
+@app.route('/news/newsbycat/', methods=['POST', 'GET'])
+def by_cat():
+    all_news = []
+    cata = ""
+    if not request.args.get('page') or not request.args.get('cata'):
+        abort(404)
+    if 'login' not in session:
+        flash("Авторизируйтесь, чтобы просматривать и добавлять новости")
+        return redirect(url_for('auth'))
+    else:
+        cati = Categories.query.all()
+        spis_cati = []
+        cata = request.args.get('cata')
+        for i in range(len(cati)):
+            spis_cati.append(cati[i].category)
+        if request.method == 'POST':
+            all_news = News.query.filter_by(category = request.form.get('category_sort')).order_by(News.date_created.desc()).all()
+            cata = request.form.get('category_sort')
+        else:
+            all_news = News.query.filter_by(category=request.args.get('cata')).order_by(News.date_created.desc()).all()
+        if all_news == []:
+            flash("Станьте первым, кто выложит новость")
+            return render_template('newsbycat.html', all_news = all_news, cati = spis_cati)
+        user = Users.query.filter_by(id=all_news[0].user_id).first()
+        curr_page = int(request.args.get('page'))
+        pgcount = len(all_news)
+        class npgstore:
+            value = pgcount
+        if curr_page > pgcount:
+            abort(404)
+        match curr_page:
+            case 0:
+                n = all_news[0]
+
+                user = Users.query.filter_by(id=n.user_id).first()
+                presentTime = n.date_created
+                presentTime2 = presentTime.strftime('%B %d %Y - %H:%M:%S')
+            case npgstore.value:
+                n = all_news[pgcount]
+                user = Users.query.filter_by(id=n.user_id).first()
+                presentTime = n.date_created
+                presentTime2 = presentTime.strftime('%B %d %Y - %H:%M:%S')
+            case _:
+                n = all_news[curr_page]
+                user = Users.query.filter_by(id=n.user_id).first()
+                presentTime = n.date_created
+                presentTime2 = presentTime.strftime('%B %d %Y - %H:%M:%S')
+        return render_template('newsbycat.html', user=user, page=curr_page, pagecount=pgcount, news=n, time=presentTime2, cati=spis_cati, cata = cata)
 
 @app.errorhandler(404)
 @app.errorhandler(403)
