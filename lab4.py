@@ -98,7 +98,9 @@ def register():
                         dbalc.session.flush()
                         dbalc.session.commit()
                         return redirect(url_for('users') + '?page=0')
-
+                if Users.query.filter_by(email = request.form.get('email')).first():
+                    flash("Такой пользователь уже зарегистрирован!")
+                    return redirect(url_for('register'))
                 u = Users(name = request.form.get('named'), surname = request.form.get('surname'), email = request.form.get('email'),
                           age = request.form.get('age'),
                           work = request.form.get('work'), post = request.form.get('position'),
@@ -132,8 +134,10 @@ def users():
         abort(404)
     if pgcount % 4 > 0:
         remainder = len(all_users) % 4
+
     class pgstore:
         value = pgcount
+
     match curr_page:
         case 0:
             a = all_users[:4]
