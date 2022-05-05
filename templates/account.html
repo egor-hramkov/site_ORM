@@ -17,7 +17,12 @@
                         <label>Возраст:</label>
                         <input type="number" value="{{user.age}}" name="age" class="edit_text" {% if user.email|string() != id_sess and is_adm == False %}readonly="True"{% endif %}>
             </div>
-            {% if user.email|string() == id_sess or is_adm == True %}<button type="submit" class="btn btn-primary">Сохранить</button>{% endif %}
+            <div>
+
+                {% if user.email|string() == id_sess or is_adm == True %}<button type="submit" class="btn btn-primary">Сохранить</button>{% endif %}
+                {% if user.email|string() != id_sess %}{% if is_flw %}<button type="button" class="btn_unfollow btn btn-primary" onclick="location.href='../follow/?email={{user.email}}&action=unsubscribe';">Отписаться</button>
+                {% else %}<button type="button" class="btn_follow btn btn-primary" onclick="location.href='../follow/?email={{user.email}}&action=subscribe';">Подписаться</button>{% endif %}{% endif %}
+            </div>
         </form>
             <div>
                 <h2>Новости пользователя: </h2>

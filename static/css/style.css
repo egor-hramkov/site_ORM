@@ -33,7 +33,7 @@ body{
     margin: auto;
 }
 .btn-primary{
-    margin: 10px 10px 10px 0px;
+    margin: 10px 5px 10px 5px;
 }
 
  .container {
@@ -169,7 +169,7 @@ footer ul li {
 .display-4 {
     width: 900px;
 }
-a {
+.menu a {
     text-decoration: none;
     color: black;
    }
@@ -339,3 +339,50 @@ h2.x-small {
     margin-bottom: 0;
     letter-spacing: 1px;
 }
+.text-wrap span {
+    color: #74b9ff;
+}
+.GridWrapper a{
+    text-decoration: none;
+    color: #74b9ff;
+
+}
+
+.btn_follow{
+    color: #fff;
+    background-color: green;
+    border-color: green;
+}
+.btn_follow:hover{
+    color: #fff;
+    background-color: green;
+    border-color: green;
+}
+
+.btn_unfollow{
+    color: #fff;
+    background-color: red;
+    border-color: red;
+}
+.btn_unfollow:hover{
+    color: #fff;
+    background-color: red;
+    border-color: red;
+}
+
+.flw {
+    width: 70%;
+    margin: 0 auto;
+    height: 450px;
+    background-color: white;
+    box-shadow: 0px 0px 4px 2px rgb(0 0 0 / 10%);
+    border-radius: 10px;
+    text-align: center;
+}
+
+.flw a {
+    font-size: 20px;
+    cursor: pointer;
+
+}
+

@@ -1,5 +1,9 @@
 from datetime import datetime
+from time import sleep
+
 from flask import Flask, url_for, render_template, request, send_from_directory, g, abort, flash, session
+from sqlalchemy import ForeignKey
+from sqlalchemy.orm import relationship
 from flask_session import Session
 from werkzeug.utils import redirect, secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -8,8 +12,24 @@ import uuid
 import loginform
 from flask_login import LoginManager
 from flask_sqlalchemy import SQLAlchemy
+from threading import Thread
+
+from vk_api.longpoll import VkLongPoll, VkEventType
+from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
+from vk_api.keyboard import VkKeyboard, VkKeyboardColor
+import vk_api
 
 
+vk_session = vk_api.VkApi(token="8a8c105055d8984df26032fc1a4721012a2c37560d89e736b0b62f884486f636e131da76d4f3019e59f24")
+session_api = vk_session.get_api()
+longpool = VkLongPoll(vk_session)
+
+keyboard = VkKeyboard()
+keyboard.add_button("Привет", VkKeyboardColor.PRIMARY)
+keyboard.add_line()
+keyboard.add_button("Хочу получать новости", VkKeyboardColor.POSITIVE)
+keyboard.add_line()
+keyboard.add_button("Я не хочу получать новости", VkKeyboardColor.NEGATIVE)
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -18,7 +38,7 @@ def allowed_file(filename):
 UPLOAD_FOLDER = 'static/photos'
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 DATABASE = 'flsite.db'
-DEBUG = True
+DEBUG = False
 SECRET_KEY = '&8\xa2|\x11\x0f\xcf\xe8\xc2\xa6\x85"\xfd~\x0c#\x06{>T\xb7\xe9\xd8\xc9'
 
 app = Flask(__name__)
@@ -27,29 +47,56 @@ app.config.from_object(__name__)
 app.config.update(dict(DATABASE=os.path.join(app.root_path, 'flsite.db')))
 app.config['SESSION_PEMANENT'] = False
 app.config['SESSION_TYPE'] = "filesystem"
-app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///mains.db"
+app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///maindb.db"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 Session(app)
 login_manager = LoginManager(app)
 dbalc = SQLAlchemy(app)
 
+
 last_cata = ""
+
+followers = dbalc.Table('followers',
+    dbalc.Column('follower_id', dbalc.Integer, dbalc.ForeignKey('users.id')),
+    dbalc.Column('followed_id', dbalc.Integer, dbalc.ForeignKey('users.id'))
+)
 
 class Users(dbalc.Model):
     id = dbalc.Column(dbalc.Integer, primary_key = True, autoincrement=True)
-    name = dbalc.Column(dbalc.String(50), nullable = True)
-    surname = dbalc.Column(dbalc.String(50), nullable=True)
-    email = dbalc.Column(dbalc.String(50), unique = True)
-    age = dbalc.Column(dbalc.Integer, nullable = True)
-    work = dbalc.Column(dbalc.String(50), nullable = True)
-    post = dbalc.Column(dbalc.String(50), nullable=True)
-    password = dbalc.Column(dbalc.String(500), nullable = True)
-    photo = dbalc.Column(dbalc.String(500), nullable=True)
-    role = dbalc.Column(dbalc.String(50), nullable=True)
+    name = dbalc.Column(dbalc.String(50), nullable = False)
+    surname = dbalc.Column(dbalc.String(50), nullable=False)
+    email = dbalc.Column(dbalc.String(50), unique = False)
+    age = dbalc.Column(dbalc.Integer, nullable = False)
+    work = dbalc.Column(dbalc.String(50), nullable = False)
+    post = dbalc.Column(dbalc.String(50), nullable=False)
+    password = dbalc.Column(dbalc.String(500), nullable = False)
+    photo = dbalc.Column(dbalc.String(500), nullable=False)
+    role = dbalc.Column(dbalc.String(50), nullable=False)
+    followed = dbalc.relationship('Users',
+                               secondary=followers,
+                               primaryjoin=(followers.c.follower_id == id),
+                               secondaryjoin=(followers.c.followed_id == id),
+                               backref=dbalc.backref('followers', lazy='dynamic'),
+                               lazy='dynamic')
 
+    def follow(self, user):
+        if not self.is_following(user):
+            self.followed.append(user)
+            return self
+
+    def unfollow(self, user):
+        if self.is_following(user):
+            self.followed.remove(user)
+            return self
+
+    def is_following(self, user):
+        return self.followed.filter(followers.c.followed_id == user.id).count() > 0
+
+    def get_followers(self):
+        return self.followed.filter(followers.c.followed_id == self.id)
 class News(dbalc.Model):
     id = dbalc.Column(dbalc.Integer, primary_key=True, autoincrement=True)
-    maintext = dbalc.Column(dbalc.String(5000), nullable=True)
+    maintext = dbalc.Column(dbalc.String(5000), nullable=False)
     category = dbalc.Column(dbalc.String(100))
     date_created = dbalc.Column(dbalc.DateTime, default=datetime.utcnow())
     user_id = dbalc.Column(dbalc.Integer)
@@ -57,6 +104,58 @@ class News(dbalc.Model):
 class Categories(dbalc.Model):
     id = dbalc.Column(dbalc.Integer, primary_key=True, autoincrement=True)
     category = dbalc.Column(dbalc.String(100), nullable=True)
+
+class Bot(dbalc.Model):
+    id = dbalc.Column(dbalc.Integer, primary_key = True, autoincrement=True)
+    id_vk = dbalc.Column(dbalc.String(100), nullable = True)
+
+def sender(id, text, keyboard):
+    vk_session.method('messages.send', {
+        'user_id': id,
+        'message': text,
+        'random_id': 0,
+        'keyboard': keyboard.get_keyboard()
+    })
+
+def send_msg():
+    all_users = Bot.query.all()
+    for i in all_users:
+        sender(i.id_vk, 'Вышла новая запись',keyboard)
+
+def aaa():
+    for event in longpool.listen():
+        if event.type == VkEventType.MESSAGE_NEW:
+            if event.to_me:
+                msg = event.text.lower()
+                id = event.user_id
+
+                if msg == 'начать':
+                    sender(id, 'Привет', keyboard)
+
+                if msg == 'привет':
+                    sender(id, 'и тебе привет', keyboard)
+
+                if msg == 'хочу получать новости':
+                    if not Bot.query.filter_by(id_vk = id).first():
+                        u = Bot(id_vk = id)
+                        dbalc.session.add(u)
+                        #dbalc.session.flush()
+                        dbalc.session.commit()
+                        sender(id, 'Теперь вы подписаны на рассылку!', keyboard)
+                    else:
+                        sender(id, 'Вы уже подписаны на рассылку!', keyboard)
+
+                if msg == 'я не хочу получать новости':
+                    u = Bot.query.filter_by(id_vk = id).first()
+                    if(Bot.query.filter_by(id_vk = id).first()):
+                        dbalc.session.delete(u)
+                        dbalc.session.commit()
+                        sender(id, 'Вы отписались от рассылки', keyboard)
+                    else:
+                        sender(id, 'Но вы итак не подписаны на рассылку', keyboard)
+
+new_thread = Thread(target=aaa)
+new_thread.start()
 
 @app.teardown_appcontext
 def close_db(error):
@@ -189,8 +288,12 @@ def account():
             if( Users.query.filter_by(email = session['login']).first().role == 'Админ'):
                 is_adm = True
             news_of_user = News.query.filter_by(user_id = user.id).order_by(News.date_created.desc()).all()
-
-            return render_template('account.html', user=user, id_sess=session['login'], is_adm=is_adm, news_of_user = news_of_user)
+            u1 = Users.query.filter_by(email = session['login']).first()
+            if u1.is_following(user):
+                is_flw = True
+            else:
+                is_flw = False
+            return render_template('account.html', user=user, id_sess=session['login'], is_adm=is_adm, news_of_user = news_of_user, is_flw = is_flw)
         else:
             abort(404)
     else:
@@ -252,6 +355,7 @@ def add_news():
             new_n = News(maintext = request.form.get("new_news"), category = request.form.get("category"), user_id = Users.query.filter_by(email = session['login']).first().id)
             dbalc.session.add(new_n)
             dbalc.session.commit()
+            send_msg()
 
         cati = Categories.query.all()
         spis_cati = []
@@ -357,6 +461,99 @@ def by_cat():
                 presentTime2 = presentTime.strftime('%B %d %Y - %H:%M:%S')
         return render_template('newsbycat.html', user=user, page=curr_page, pagecount=pgcount, news=n, time=presentTime2, cati=spis_cati, cata = cata)
 
+@app.route('/follow/', methods=['POST', 'GET'])
+def follow():
+    if request.method == 'GET':
+        obj = request.args.get('email')
+        action = request.args.get('action')
+        if action == 'subscribe':
+            print("ЗАШЛО")
+            user = Users.query.filter_by(email=session['login']).first()
+            user2 = Users.query.filter_by(email=obj).first()
+            u = user.follow(user2)
+            dbalc.session.add(u)
+            dbalc.session.commit()
+        elif action == 'unsubscribe':
+            user = Users.query.filter_by(email=session['login']).first()
+            user2 = Users.query.filter_by(email=obj).first()
+            u = user.unfollow(user2)
+            assert u != None
+            dbalc.session.add(u)
+            dbalc.session.commit()
+    return redirect(url_for('account')+'?user=' + user2.email)
+
+@app.route('/followers/')
+def list_followers():
+    flw = request.args.get('flw')
+    user = Users.query.filter_by(email=session['login']).first()
+    if flw == 'subs':
+        title = 'Подписки'
+        list_subs = user.followed.all()
+        if list_subs == []:
+            flash('У вас нет подписок')
+    if flw == 'subd':
+        title = 'Подписчики'
+        list_subs = user.followers.all()
+        if list_subs == []:
+            flash('У вас нет подписчиков')
+
+    return render_template('followers.html', lists = list_subs, title=title)
+
+
+@app.route('/newsbysub/')
+def newsbysub():
+    spis_all_news = []
+    temp_all_news = []
+    if not request.args.get('page'):
+        abort(404)
+    if 'login' not in session:
+        flash("Авторизируйтесь, чтобы просматривать и добавлять новости")
+        return redirect(url_for('auth'))
+    else:
+        user = Users.query.filter_by(email=session['login']).first()
+        list_subs = list(user.followed.all())
+        if list_subs == []:
+            flash("Подпишитесь на кого-нибудь, чтобы следить за его новостями!")
+            return render_template('newsbysub.html', all_news = list_subs)
+        for i in list_subs:
+            iter = 0
+            temp_all_news = []
+            temp_all_news.append(News.query.filter_by(user_id=i.id).all())
+            if temp_all_news != []:
+                for news in temp_all_news[iter]:
+                    spis_all_news.append(news)
+                    iter += 1
+        spis_all_news = sorted(spis_all_news, key=lambda x: x.date_created)[::-1]
+        if spis_all_news == []:
+            flash("Тут пока что ничего нет :(")
+            return render_template('newsbysub.html', all_news = spis_all_news)
+
+        curr_page = int(request.args.get('page'))
+        pgcount = len(spis_all_news)
+        remainder = 0
+
+        class npgstore:
+            value = pgcount
+
+        if curr_page == 0:
+            n = spis_all_news[0]
+            user = Users.query.filter_by(id=n.user_id).first()
+            presentTime = n.date_created
+            presentTime2 = presentTime.strftime('%B %d %Y - %H:%M:%S')
+        if curr_page == npgstore.value:
+            n = spis_all_news[pgcount]
+            user = Users.query.filter_by(id=n.user_id).first()
+            presentTime = n.date_created
+            presentTime2 = presentTime.strftime('%B %d %Y - %H:%M:%S')
+        if curr_page != npgstore.value and curr_page != 0:
+            n = spis_all_news[curr_page]
+            user = Users.query.filter_by(id=n.user_id).first()
+            presentTime = n.date_created
+            presentTime2 = presentTime.strftime('%B %d %Y - %H:%M:%S')
+
+
+    return render_template('newsbysub.html', news = n, time = presentTime2, user = user, pagecount = pgcount)
+
 @app.errorhandler(404)
 @app.errorhandler(403)
 @app.errorhandler(410)
@@ -366,3 +563,4 @@ def page_not_found(e):
 
 if __name__ == '__main__':
     app.run(port=8080, host='127.0.0.1')
+

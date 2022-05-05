@@ -1,0 +1,16 @@
+{% extends 'main.html' %}
+
+{% block head %}
+        <title>{{title}}</title>
+{% endblock %}
+
+{% block body %}
+        <div class="flw">
+                {% for msg in get_flashed_messages() %}
+                        <div class="flash">{{msg}}</div>
+                {% endfor %}
+                {% for a in lists %}
+                        <a onclick="location.href='../account/?user={{a.email}}';">{{a.name}} {{a.surname}}</a><br>
+                {% endfor %}
+        </div>
+{% endblock %}

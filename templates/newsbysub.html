@@ -1,0 +1,34 @@
+{% extends 'main.html' %}
+
+{% block head %}
+    <title>Новости подписок</title>
+{% endblock %}
+
+{% block body %}
+    <div class="table-box">
+        <div class="for_news_users">
+            {% for msg in get_flashed_messages() %}
+                <div class="flash">{{msg}}</div>
+            {% endfor %}
+                    {% if all_news != [] %}
+                    <div class="user_column">
+                        <img src="{{ url_for('static', filename = 'photos/'+user.photo) }}"/>
+                        <p>{{user.name}} {{user.surname}}</p>
+                        <small class="text-muted">{{time}}</small>
+                    </div>
+                    <div class="posters"><p>Категория: {{news.category}}</p><p class="news">{{news.maintext}}</p></div>
+                    {% endif %}
+        </div>
+    </div>
+<button class="btn btn-primary news_btn2" onclick="location.href='../news/addnews';">Опубликовать новость</button>
+<button class="btn btn-primary news_btn2" onclick="location.href='../news/?page=0';">Смотреть все новости</button>
+{% if all_news != [] %}
+        <div class="pagination">
+        <a href="/newsbysub/?page=0" >&laquo;</a>
+        {% for page in range(pagecount) %}
+            <a href="/newsbysub/?page={{ page }}" >{{ page + 1 }}</a>
+        {% endfor %}
+        <a  href="/newsbysub/?page={{pagecount - 1}}">&raquo;</a>
+    </div>
+    {% endif %}
+{% endblock %}

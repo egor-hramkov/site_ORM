@@ -7,9 +7,11 @@
 {% block body %}
 {% if 'login' in session %}
 <div class="vhod">
-<h3>Вы вошли как {{user.name}} {{user.surname}}</h3>
-    <button class="btn btn-primary" onclick="location.href='../users/?page=0';">Посмотреть список пользователей</button>
-    <button class="btn btn-primary" onclick="location.href='../auth/?avt=false';">Выход</button>
+<h3 style="margin-left: 10px;">Вы вошли как {{user.name}} {{user.surname}}</h3>
+    <button class="btn btn-primary" style="width: 97%;" onclick="location.href='../users/?page=0';">Посмотреть список пользователей</button>
+    <button class="btn btn-primary" style="width: 30%;" onclick="location.href='../followers/?flw=subd';">Подписчики</button>
+    <button class="btn btn-primary" style="width: 30%;" onclick="location.href='../followers/?flw=subs';">Подписки</button>
+    <button class="btn btn-primary" style="width: 30%;" onclick="location.href='../auth/?avt=false';">Выход</button>
 </div>
 {% else %}
         <form class="regist" method="post" enctype="multipart/form-data">

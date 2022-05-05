@@ -30,6 +30,7 @@
                 </div>
             </div>
             <button class="btn btn-primary news_btn2" onclick="location.href='../news/addnews';">Опубликовать новость</button>
+            <button class="btn btn-primary news_btn2" onclick="location.href='../newsbysub/?page=0';">Смотреть новости по подпискам</button>
             <form method="POST" id=forma">
                 <button class="btn btn-primary news_btn2" onclick="return x();">Сортировать по категориям</button>
                 <label>Категория:</label>
@@ -47,5 +48,5 @@
         {% endfor %}
         <a  href="/news?page={{pagecount - 1}}">&raquo;</a>
     </div>
-{% endif %}
+    {% endif %}
     {% endblock %}
