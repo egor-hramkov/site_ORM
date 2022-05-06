@@ -117,10 +117,10 @@ def sender(id, text, keyboard):
         'keyboard': keyboard.get_keyboard()
     })
 
-def send_msg():
+def send_msg(text):
     all_users = Bot.query.all()
     for i in all_users:
-        sender(i.id_vk, 'Вышла новая запись',keyboard)
+        sender(i.id_vk, 'Вышла новая запись от пользователя ' + text + '. Вы можете посмотреть ее на сайте http://egorhramkov.pythonanywhere.com/mainpage/',keyboard)
 
 def aaa():
     for event in longpool.listen():
@@ -355,7 +355,7 @@ def add_news():
             new_n = News(maintext = request.form.get("new_news"), category = request.form.get("category"), user_id = Users.query.filter_by(email = session['login']).first().id)
             dbalc.session.add(new_n)
             dbalc.session.commit()
-            send_msg()
+            send_msg(Users.query.filter_by(email=session['login']).first().name + ' ' + Users.query.filter_by(email=session['login']).first().surname)
 
         cati = Categories.query.all()
         spis_cati = []
